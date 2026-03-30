@@ -1523,34 +1523,27 @@ body {
     max-width: 100%;
     overflow-x: hidden;
 }
+/* ===== MOBILE OVERFLOW + SCROLL FIXES ===== */
 
-/* MOBILE GRID FIXES */
+body { overflow-x: hidden; }
+
+.container {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 @media (max-width: 640px) {
-
-    .dashboard-grid {
-        grid-template-columns: 1fr !important;
-    }
-
-    .forecast-section {
-        grid-template-columns: 1fr !important;
-    }
-
-    .details-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .advanced-grid {
-        grid-template-columns: 1fr 1fr;
-    }
+    .dashboard-grid { grid-template-columns: 1fr !important; }
+    .forecast-section { grid-template-columns: 1fr !important; }
+    .details-grid { grid-template-columns: 1fr 1fr; }
+    .advanced-grid { grid-template-columns: 1fr 1fr; }
 
     .main-weather-card {
         padding: 1.5rem;
         text-align: center;
     }
 
-    .temp-value {
-        font-size: 3rem;
-    }
+    .temp-value { font-size: 3rem; }
 
     .weather-icon-big {
         position: relative;
@@ -1562,16 +1555,10 @@ body {
     }
 }
 
-/* HOURLY SCROLL FIX */
+/* Hourly scroll fix */
 .hourly-scroll {
-    display: flex;
-    gap: 0.75rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-
     padding-right: 1rem;
 }
 
@@ -1581,25 +1568,13 @@ body {
 }
 
 .hour-item {
-    min-width: 80px;
-    flex-shrink: 0;
     scroll-snap-align: start;
 }
 
-@media (max-width: 640px) {
-    .hour-item {
-        min-width: 70px;
-        padding: 0.75rem;
-    }
-}
+.hourly-scroll { cursor: grab; }
+.hourly-scroll:active { cursor: grabbing; }
 
-.hourly-scroll {
-    cursor: grab;
-}
-
-.hourly-scroll:active {
-    cursor: grabbing;
-}
+/* ===== END FIXES ===== */
 .forecast-card {
     overflow: hidden;
 }
@@ -1608,13 +1583,6 @@ body {
     padding-left: 0.5rem;
     padding-right: 1.25rem; /* more space on right */
 }
-
-<!-- No HTML changes needed, your structure is already correct --><!-- RESULT:
-✔ Smooth horizontal scroll
-✔ Snap effect
-✔ Right margin fixed
-✔ No mobile overflow
--->
 @media (max-width: 640px) {
 
     .forecast-header {
@@ -1632,9 +1600,6 @@ body {
         flex: 1;
         text-align: center;
     }
-}
-.forecast-card {
-    overflow: visible;
 }
     </style>
 </head>
