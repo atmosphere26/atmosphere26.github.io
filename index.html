@@ -1,0 +1,2568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmosphere | Modern Weather Experience</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #020617;
+            --bg-secondary: #0f172a;
+            --bg-tertiary: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            line-height: 1.6;
+        }
+
+        /* Ambient Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.35;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            top: -200px;
+            right: -200px;
+        }
+
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            bottom: -150px;
+            left: -150px;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, var(--accent-purple), #ec4899);
+            top: 40%;
+            left: 30%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* Navigation - FIXED FOR MOBILE VISIBILITY */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 0.5rem 0;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            cursor: pointer;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+            flex-shrink: 0;
+        }
+
+        .mobile-menu-toggle span {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: var(--text-primary);
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .mobile-menu-toggle.active span:nth-child(1) {
+            transform: rotate(45deg) translate(4px, 4px);
+        }
+
+        .mobile-menu-toggle.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-toggle.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(4px, -4px);
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(180deg);
+        }
+
+        /* Mobile Navigation Overlay */
+        .mobile-nav-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 999;
+            padding: 100px 2rem 2rem;
+            flex-direction: column;
+            gap: 1rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav-link {
+            padding: 1.25rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .mobile-nav-link:hover, .mobile-nav-link.active {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            transform: translateX(10px);
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 4px 6px -1px var(--glass-shadow), 0 2px 4px -1px var(--glass-shadow);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px var(--glass-shadow), 0 10px 10px -5px var(--glass-shadow);
+        }
+
+        /* Main Content */
+        main {
+            padding-top: 80px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Page Sections */
+        .page-section {
+            display: none;
+            animation: pageEnter 0.4s ease;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        @keyframes pageEnter {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Home/Weather Page */
+        .hero-section {
+            text-align: center;
+            padding: 4rem 0 3rem;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 50px;
+            font-size: 0.875rem;
+            color: var(--accent-blue);
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-section h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-section > p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        /* Hero Navigation Buttons */
+        .hero-nav-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-family: inherit;
+        }
+
+        .hero-nav-btn.primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .hero-nav-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .hero-nav-btn.secondary {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-nav-btn.secondary:hover {
+            background: var(--bg-tertiary);
+            transform: translateY(-2px);
+        }
+
+        /* Portfolio Box - FIXED FOR MOBILE */
+        .portfolio-box {
+            transition: all 0.3s ease;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            padding: 1.5rem;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        
+        .portfolio-box:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
+        }
+        
+        .portfolio-box a:hover {
+            text-decoration: underline;
+        }
+
+        /* Search Section */
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            position: relative;
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1.25rem 3.5rem 1.25rem 1.5rem;
+            border-radius: 16px;
+            border: 2px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Search Suggestions */
+        .suggestions-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px var(--glass-shadow);
+            max-height: 400px;
+            overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .suggestions-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .suggestion-category {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-tertiary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .suggestion-item {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .suggestion-item .flag {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .suggestion-item .info {
+            flex: 1;
+        }
+
+        .suggestion-item .name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .suggestion-item .meta {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .suggestion-item .country {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            background: var(--bg-tertiary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            background: var(--bg-tertiary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .empty-state h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Weather Dashboard */
+        .weather-dashboard {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .weather-dashboard.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .main-weather-card {
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .weather-glow {
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .location-info {
+            position: relative;
+            z-index: 1;
+        }
+
+        .location-info h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .date-display {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .temp-display {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .temp-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 5rem;
+            font-weight: 700;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .temp-unit {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .condition-text {
+            font-size: 1.25rem;
+            color: var(--accent-blue);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .feels-like {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .weather-icon-big {
+            position: absolute;
+            top: 50%;
+            right: 2rem;
+            transform: translateY(-50%);
+            font-size: 6rem;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.1));
+            animation: floatWeather 3s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes floatWeather {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50% { transform: translateY(-60%) translateX(10px); }
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .detail-card {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .detail-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Advanced Details */
+        .advanced-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .advanced-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .adv-card {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .adv-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+        }
+
+        .adv-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .adv-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Forecast */
+        .forecast-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .forecast-card {
+            padding: 1.5rem;
+        }
+
+        .forecast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .forecast-header h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.125rem;
+        }
+
+        .unit-toggle {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.25rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .unit-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+        }
+
+        .unit-btn.active {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px var(--glass-shadow);
+        }
+
+        .hourly-scroll {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            scrollbar-width: none;
+        }
+
+        .hourly-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hour-item {
+            min-width: 80px;
+            padding: 1rem;
+            border-radius: 16px;
+            background: var(--bg-tertiary);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .hour-item:hover {
+            background: var(--glass-bg);
+            transform: translateY(-4px);
+        }
+
+        .hour-time {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .hour-icon {
+            font-size: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .hour-temp {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+        }
+
+        .day-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .day-item:last-child {
+            border-bottom: none;
+        }
+
+        .day-name {
+            font-weight: 500;
+            width: 50px;
+        }
+
+        .day-weather {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .day-icon {
+            font-size: 1.25rem;
+        }
+
+        .day-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .day-temps {
+            display: flex;
+            gap: 1rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .day-high {
+            font-weight: 600;
+        }
+
+        .day-low {
+            color: var(--text-secondary);
+        }
+
+        /* About Page Styles */
+        .about-hero {
+            text-align: center;
+            padding: 4rem 0;
+        }
+
+        .about-hero h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .about-hero > p {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .about-content {
+            display: grid;
+            gap: 3rem;
+        }
+
+        .about-section-block {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        .about-section-block.reverse {
+            direction: rtl;
+        }
+
+        .about-section-block.reverse > * {
+            direction: ltr;
+        }
+
+        .about-image-card {
+            position: sticky;
+            top: 100px;
+        }
+
+        .profile-large {
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .avatar-large {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
+        }
+
+        .profile-large h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-role {
+            color: var(--accent-blue);
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-bio {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .social-grid {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .social-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.25rem;
+        }
+
+        .social-btn:hover {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .about-text-content h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .about-text-content > p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .info-card-large {
+            padding: 2rem;
+        }
+
+        .info-card-large h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .info-card-large p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .info-card-large ul {
+            color: var(--text-secondary);
+            padding-left: 1.5rem;
+            line-height: 2;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .tech-tag {
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 50px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tech-tag:hover {
+            background: var(--accent-blue);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin: 2rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent-blue), var(--accent-purple));
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            transform: translateX(-5px);
+        }
+
+        .timeline-item h5 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-item p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--glass-border);
+            padding: 4rem 2rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .footer-brand p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-blue);
+            padding-left: 4px;
+        }
+
+        .footer-bottom {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: 2rem;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-tertiary);
+            font-size: 0.875rem;
+        }
+
+        /* Loading & Toast */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--bg-tertiary);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 1rem 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid #ef4444;
+            border-radius: 12px;
+            color: #ef4444;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 3000;
+            box-shadow: 0 10px 40px var(--glass-shadow);
+        }
+
+        .toast.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .dashboard-grid,
+            .forecast-section,
+            .about-section-block,
+            .about-section-block.reverse {
+                grid-template-columns: 1fr;
+            }
+
+            .about-section-block.reverse {
+                direction: ltr;
+            }
+
+            .about-image-card {
+                position: relative;
+                top: 0;
+            }
+
+            .advanced-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+            }
+
+            .weather-icon-big {
+                position: relative;
+                top: auto;
+                right: auto;
+                transform: none;
+                margin-top: 2rem;
+                font-size: 4rem;
+            }
+
+            @keyframes floatWeather {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+        }
+
+        /* MOBILE FIXES - Critical for navbar visibility */
+        @media (max-width: 640px) {
+            .navbar {
+                padding: 0.75rem 1rem;
+            }
+
+            .nav-brand {
+                font-size: 1.25rem;
+                gap: 0.5rem;
+            }
+
+            .brand-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+
+            .nav-actions {
+                gap: 0.5rem;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+                width: 36px;
+                height: 36px;
+            }
+
+            .theme-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-nav-overlay {
+                display: flex;
+            }
+
+            .advanced-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .hero-nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hero-nav-btn {
+                width: 100%;
+                max-width: 280px;
+                justify-content: center;
+                padding: 0.75rem 1.25rem;
+                font-size: 0.9rem;
+            }
+
+            /* CRITICAL FIX: Make portfolio box compact on mobile */
+            .portfolio-box {
+                max-width: 100% !important;
+                margin: 0 auto 1.5rem auto !important;
+                padding: 0.875rem 1rem !important;
+                gap: 0.75rem !important;
+                flex-direction: row !important;
+                align-items: center !important;
+            }
+
+            .portfolio-box span {
+                font-size: 1.25rem !important;
+            }
+
+            .portfolio-box p {
+                font-size: 0.875rem !important;
+            }
+
+            .portfolio-box a {
+                font-size: 0.8rem !important;
+            }
+
+            /* Ensure container padding doesn't cause overflow */
+            .container {
+                padding: 1rem;
+            }
+
+            /* Reduce hero section padding */
+            .hero-section {
+                padding: 2rem 0 1.5rem;
+            }
+
+            .hero-section h1 {
+                font-size: clamp(1.75rem, 6vw, 2.5rem);
+            }
+
+            .hero-section > p {
+                font-size: 1rem;
+                padding: 0 0.5rem;
+            }
+
+            /* Ensure weather dashboard doesn't overlap with navbar */
+            .weather-dashboard {
+                padding-top: 0.5rem;
+            }
+
+            /* Make search container more compact */
+            .search-container {
+                margin-bottom: 2rem;
+            }
+
+            .search-input {
+                padding: 1rem 3rem 1rem 1rem;
+                font-size: 0.95rem;
+            }
+
+            .search-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 380px) {
+            .nav-brand span {
+                font-size: 1.1rem;
+            }
+
+            .brand-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .portfolio-box {
+                padding: 0.75rem !important;
+            }
+
+            .portfolio-box span {
+                font-size: 1.1rem !important;
+            }
+
+            .portfolio-box p {
+                font-size: 0.8rem !important;
+            }
+        }
+<!-- Only showing modified parts you need to replace/add --><style>
+
+/* ADD THIS GLOBAL FIX */
+body {
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* MOBILE GRID FIXES */
+@media (max-width: 640px) {
+
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .forecast-section {
+        grid-template-columns: 1fr !important;
+    }
+
+    .details-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .advanced-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .main-weather-card {
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .temp-value {
+        font-size: 3rem;
+    }
+
+    .weather-icon-big {
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        margin-top: 1rem;
+        font-size: 3rem;
+    }
+}
+
+/* HOURLY SCROLL FIX */
+.hourly-scroll {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+
+    padding-right: 1rem;
+}
+
+.hourly-scroll::after {
+    content: "";
+    flex: 0 0 16px;
+}
+
+.hour-item {
+    min-width: 80px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+}
+
+@media (max-width: 640px) {
+    .hour-item {
+        min-width: 70px;
+        padding: 0.75rem;
+    }
+}
+
+.hourly-scroll {
+    cursor: grab;
+}
+
+.hourly-scroll:active {
+    cursor: grabbing;
+}
+.forecast-card {
+    overflow: hidden;
+}
+
+.hourly-scroll {
+    padding-left: 0.5rem;
+    padding-right: 1.25rem; /* more space on right */
+}
+
+<!-- No HTML changes needed, your structure is already correct --><!-- RESULT:
+✔ Smooth horizontal scroll
+✔ Snap effect
+✔ Right margin fixed
+✔ No mobile overflow
+-->
+@media (max-width: 640px) {
+
+    .forecast-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .unit-toggle {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .unit-btn {
+        flex: 1;
+        text-align: center;
+    }
+}
+.forecast-card {
+    overflow: visible;
+}
+    </style>
+</head>
+<body>
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p style="color: var(--text-secondary);">Loading weather data...</p>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" id="mobileNavOverlay">
+        <button class="mobile-nav-link active" onclick="showPage('home'); toggleMobileMenu();" id="mobileNavHome">
+            🌤️ Weather
+        </button>
+        <button class="mobile-nav-link" onclick="showPage('about'); toggleMobileMenu();" id="mobileNavAbout">
+            👤 About
+        </button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <!-- Click logo to go home -->
+            <div class="nav-brand" onclick="showPage('home')">
+                <div class="brand-icon">☁️</div>
+                <span>Atmosphere</span>
+            </div>
+            
+            <ul class="nav-links">
+                <!-- These buttons call showPage() to switch views -->
+                <li><button class="nav-link active" onclick="showPage('home')" id="navHome">Weather</button></li>
+                <li><button class="nav-link" onclick="showPage('about')" id="navAbout">About</button></li>
+            </ul>
+
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle">🌙</button>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ==================== HOME/WEATHER PAGE ==================== -->
+    <main class="page-section active" id="homePage">
+        <div class="container">
+            <!-- Hero -->
+            <section class="hero-section">
+                <div class="hero-badge">
+                    <span>✨</span>
+                    <span>Live Weather Data</span>
+                </div>
+                <h1>Global Weather Forecast</h1>
+                <p>Search any city worldwide for real-time weather conditions, forecasts, and detailed atmospheric information.</p>
+                
+                <!-- Hero Navigation Buttons -->
+                <div class="hero-nav-buttons">
+                    <button class="hero-nav-btn primary" onclick="showPage('home'); document.getElementById('searchInput').focus();">
+                        <span>🌤️</span>
+                        Check Weather
+                    </button>
+                    <button class="hero-nav-btn secondary" onclick="showPage('about')">
+                        <span>👤</span>
+                        About Me
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Portfolio Link Box - COMPACT ON MOBILE -->
+            <div class="portfolio-box glass-card">
+                <span>👨‍💻</span>
+                <div>
+                    <p style="margin: 0; font-weight: 600; color: var(--text-primary);">Check out my portfolio</p>
+                    <a href="https://ranmikakalhan.github.io" target="_blank" style="color: var(--accent-blue); text-decoration: none; font-size: 0.9rem; font-weight: 500;">ranmikakalhan.github.io →</a>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search for a city (e.g., Colombo, London, Tokyo)..." autocomplete="off">
+                    <button class="search-btn" id="searchBtn">⌕</button>
+                    
+                    <!-- Dynamic Suggestions -->
+                    <div class="suggestions-dropdown" id="suggestionsDropdown"></div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">🌍</div>
+                <h3>Search for a city</h3>
+                <p>Type a city name above to see current weather and forecast</p>
+            </div>
+
+            <!-- Weather Dashboard -->
+            <div class="weather-dashboard" id="weatherDashboard">
+                <!-- Main Grid -->
+                <div class="dashboard-grid">
+                    <div class="glass-card main-weather-card">
+                        <div class="weather-glow"></div>
+                        <div class="location-info">
+                            <h2 id="cityName">--</h2>
+                            <div class="date-display" id="currentDate">--</div>
+                            
+                            <div class="temp-display">
+                                <span class="temp-value" id="temperature">--</span>
+                                <span class="temp-unit" id="tempUnitDisplay">°C</span>
+                            </div>
+                            
+                            <div class="condition-text" id="weatherDesc">--</div>
+                            <div class="feels-like">Feels like <span id="feelsLike">--</span>°</div>
+                        </div>
+                        <div class="weather-icon-big" id="mainIcon">🌡</div>
+                    </div>
+
+                    <div class="details-grid">
+                        <div class="glass-card detail-card">
+                            <div class="detail-icon">💧</div>
+                            <div class="detail-label">Humidity</div>
+                            <div class="detail-value" id="humidity">--%</div>
+                        </div>
+                        <div class="glass-card detail-card">
+                            <div class="detail-icon">💨</div>
+                            <div class="detail-label">Wind Speed</div>
+                            <div class="detail-value" id="windSpeed">-- km/h</div>
+                        </div>
+                        <div class="glass-card detail-card">
+                            <div class="detail-icon">👁</div>
+                            <div class="detail-label">Visibility</div>
+                            <div class="detail-value" id="visibility">-- km</div>
+                        </div>
+                        <div class="glass-card detail-card">
+                            <div class="detail-icon">🔽</div>
+                            <div class="detail-label">Pressure</div>
+                            <div class="detail-value" id="pressure">-- hPa</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Details -->
+                <div class="advanced-section">
+                    <h3 class="section-title">Detailed Metrics</h3>
+                    <div class="advanced-grid">
+                        <div class="glass-card adv-card">
+                            <div class="adv-icon">🌅</div>
+                            <div class="adv-label">Sunrise</div>
+                            <div class="adv-value" id="sunrise">--:--</div>
+                        </div>
+                        <div class="glass-card adv-card">
+                            <div class="adv-icon">🌇</div>
+                            <div class="adv-label">Sunset</div>
+                            <div class="adv-value" id="sunset">--:--</div>
+                        </div>
+                        <div class="glass-card adv-card">
+                            <div class="adv-icon">☔</div>
+                            <div class="adv-label">Precipitation</div>
+                            <div class="adv-value" id="precipitation">--%</div>
+                        </div>
+                        <div class="glass-card adv-card">
+                            <div class="adv-icon">☀️</div>
+                            <div class="adv-label">UV Index</div>
+                            <div class="adv-value" id="uvIndex">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecasts -->
+                <div class="forecast-section">
+                    <div class="glass-card forecast-card">
+                        <div class="forecast-header">
+                            <h3>Hourly Forecast</h3>
+                            <div class="unit-toggle">
+                                <button class="unit-btn active" data-unit="celsius">°C</button>
+                                <button class="unit-btn" data-unit="fahrenheit">°F</button>
+                            </div>
+                        </div>
+                        <div class="hourly-scroll" id="hourlyForecast"></div>
+                    </div>
+
+                    <div class="glass-card forecast-card">
+                        <div class="forecast-header">
+                            <h3>7-Day Forecast</h3>
+                        </div>
+                        <div id="weeklyForecast"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================== ABOUT PAGE ==================== -->
+    <main class="page-section" id="aboutPage">
+        <div class="container">
+            <section class="about-hero">
+                <h1>About Atmosphere</h1>
+                <p>A deep dive into the design philosophy, technical architecture, and creative vision behind this modern weather experience.</p>
+            </section>
+          
+            <div class="about-content">
+                <!-- Creator Section -->
+                <div class="about-section-block">
+                    <div class="about-image-card">
+                        <div class="glass-card profile-large">
+                            <div class="avatar-large"><b>RK</b></div>
+                            <h2>Ranmika Kalhan</h2>
+                            <div class="profile-role">Website Builder & Video Editor </div>
+                            <p class="profile-bio">
+                                Passionate about creating digital experiences that blend functionality with aesthetic beauty. 
+                                Specialized in modern CSS, JavaScript architecture, and design systems.
+                            </p>
+                            <div class="social-grid">
+                                <a href="https://github.com/ranmika17" class="social-btn" title="GitHub">📧</a>
+                                <a href="" class="social-btn" title="Twitter">🐦</a>
+                                <a href="" class="social-btn" title="LinkedIn">💼</a>
+                                <a href="" class="social-btn" title="Portfolio">🌐</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="about-text-content">
+                        <h3>The Creator</h3>
+                        <p>
+                            I'm a 16-year-old creative from Sri Lanka with a strong passion for design and video editing, focused on creating immersive and visually engaging digital experiences. With a keen eye for detail and a sense of storytelling, I enjoy turning simple ideas into compelling visuals that capture attention and emotion.
+                        </p>
+                        
+                        <div class="stats-grid">
+                            <div class="glass-card stat-card">
+                                <div class="stat-number">1.5+</div>
+                                <div class="stat-label">Years Experience</div>
+                            </div>
+                            <div class="glass-card stat-card">
+                                <div class="stat-number">15+</div>
+                                <div class="stat-label">Age</div>
+                            </div>
+                            <div class="glass-card stat-card">
+                                <div class="stat-number">∞</div>
+                                <div class="stat-label">Coffee Consumed</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Portfolio Link Box -->
+                        <div class="portfolio-box glass-card" style="max-width: 700px; margin: 0 auto 3rem; padding: 2rem; text-align: center; display: block;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🚀</span>
+                            <h3 style="margin: 0 0 0.5rem; font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem;">View My Portfolio</h3>
+                            <p style="margin: 0 0 1rem; color: var(--text-secondary); font-size: 0.95rem;">See more of my projects and work</p>
+                            <a href="https://ranmikakalhan.github.io" target="_blank" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 12px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; font-weight: 600;">Visit ranmikakalhan.github.io →</a>
+                        </div>
+                        
+                        <div class="info-grid">
+                            <div class="glass-card info-card-large">
+                                <h4>🎯 Design Philosophy</h4>
+                                <p>
+                                    I believe interfaces should feel intuitive and delightful. Every element in 
+                                    Atmosphere serves a purpose—from the ambient background orbs that shift 
+                                    subtly like atmospheric pressure changes, to the glass cards that provide 
+                                    tactile feedback through hover states.
+                                </p>
+                                <ul>
+                                    <li>Clarity through simplicity</li>
+                                    <li>Beauty through functionality</li>
+                                    <li>Motion with meaning</li>
+                                    <li>Accessibility for all</li>
+                                </ul>
+                            </div>
+
+                            <div class="glass-card info-card-large">
+                                <h4>🛠 Technical Expertise</h4>
+                                <p>
+                                    Built entirely with vanilla web technologies to demonstrate the power of 
+                                    modern CSS and JavaScript without framework dependencies. This approach 
+                                    allows for granular control over animations and performance optimization.
+                                </p>
+                                <div class="tech-tags">
+                                    <span class="tech-tag">HTML5 Semantics</span>
+                                    <span class="tech-tag">CSS3 Grid/Flexbox</span>
+                                    <span class="tech-tag">CSS Variables</span>
+                                    <span class="tech-tag">Backdrop Filters</span>
+                                    <span class="tech-tag">ES6+ JavaScript</span>
+                                    <span class="tech-tag">REST APIs</span>
+                                    <span class="tech-tag">LocalStorage</span>
+                                    <span class="tech-tag">Intersection Observer</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Details Section -->
+                <div class="about-section-block reverse">
+                    <div class="about-image-card">
+                        <div class="glass-card profile-large">
+                            <div class="avatar-large" style="background: linear-gradient(135deg, #10b981, #06b6d4);">🌊</div>
+                            <h2>The Project</h2>
+                            <div class="profile-role">Liquid Glass Weather Experience</div>
+                            <p class="profile-bio">
+                                A weather application that reimagines how meteorological data is presented, 
+                                focusing on fluid interactions and visual clarity.
+                            </p>
+                            <div class="stats-grid" style="margin-top: 1.5rem;">
+                                <div class="glass-card stat-card">
+                                    <div class="stat-number">2</div>
+                                    <div class="stat-label">Pages</div>
+                                </div>
+                                <div class="glass-card stat-card">
+                                    <div class="stat-number">0</div>
+                                    <div class="stat-label">Dependencies</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="about-text-content">
+                        <h3>About The Website</h3>
+                        <p>
+                            Atmosphere is more than a weather app—it's a design exploration. The project 
+                            challenges conventional weather interfaces by adopting emerging design patterns 
+                            like liquid glass morphism, ambient backgrounds, and physics-based animations.
+                        </p>
+
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <h5>Concept & Research</h5>
+                                <p>Studied iOS design language, glass morphism trends, and weather API capabilities to define the project scope.</p>
+                            </div>
+                            <div class="timeline-item">
+                                <h5>Architecture Design</h5>
+                                <p>Planned component structure, state management, and API integration patterns for a seamless user experience.</p>
+                            </div>
+                            <div class="timeline-item">
+                                <h5>Visual Development</h5>
+                                <p>Implemented CSS variables for theming, backdrop filters for glass effects, and gradient animations for ambiance.</p>
+                            </div>
+                            <div class="timeline-item">
+                                <h5>Interaction Design</h5>
+                                <p>Crafted hover states, transitions, and micro-interactions that make the interface feel responsive and alive.</p>
+                            </div>
+                        </div>
+
+                        <div class="info-grid">
+                            <div class="glass-card info-card-large">
+                                <h4>✨ Key Features</h4>
+                                <p>
+                                    Every feature is designed with intention. The search provides intelligent 
+                                    suggestions as you type. The dashboard reveals information progressively. 
+                                    The forecasts are scannable yet detailed.
+                                </p>
+                                <ul>
+                                    <li><strong>Smart Search:</strong> Real-time city suggestions with fuzzy matching</li>
+                                    <li><strong>Adaptive UI:</strong> Light/dark mode with system preference detection</li>
+                                    <li><strong>Glass Morphism:</strong> Multi-layered translucent interfaces</li>
+                                    <li><strong>Fluid Animations:</strong> 60fps transitions and micro-interactions</li>
+                                    <li><strong>Zero Dependencies:</strong> Pure vanilla JavaScript for maximum performance</li>
+                                </ul>
+                            </div>
+
+                            <div class="glass-card info-card-large">
+                                <h4>🔮 Future Roadmap</h4>
+                                <p>
+                                    This is just the beginning. Planned enhancements include radar maps, 
+                                    weather alerts, location-based auto-detection, and progressive web app capabilities.
+                                </p>
+                                <ul>
+                                    <li>Interactive weather maps</li>
+                                    <li>Severe weather notifications</li>
+                                    <li>Geolocation support</li>
+                                    <li>Offline functionality</li>
+                                    <li>Multi-language support</li>
+                                </ul>
+                            </div>
+
+                            <div class="glass-card info-card-large">
+                                <h4>⚙️ How It Works</h4>
+                                <p>
+                                    The application follows a clean architecture: Geocoding API converts city 
+                                    names to coordinates, Weather API fetches meteorological data, and the 
+                                    UI layer transforms raw data into visual experiences.
+                                </p>
+                                <div class="tech-tags">
+                                    <span class="tech-tag">Open-Meteo API</span>
+                                    <span class="tech-tag">Geocoding</span>
+                                    <span class="tech-tag">Forecast Data</span>
+                                    <span class="tech-tag">Client-side Rendering</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technical Deep Dive -->
+                <div class="about-section-block">
+                    <div class="about-text-content" style="grid-column: 1 / -1;">
+                        <h3>Technical Architecture</h3>
+                        <p>
+                            Atmosphere demonstrates modern web development best practices without relying on 
+                            heavy frameworks. The entire application is contained in a single HTML file 
+                            for portability, while maintaining clean separation of concerns.
+                        </p>
+
+                        <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                            <div class="glass-card info-card-large">
+                                <h4>🎨 CSS Architecture</h4>
+                                <p>CSS custom properties enable dynamic theming. The glass effect combines backdrop-filter, semi-transparent backgrounds, and calculated shadows.</p>
+                            </div>
+                            <div class="glass-card info-card-large">
+                                <h4>⚡ Performance</h4>
+                                <p>Intersection Observer for scroll animations. Debounced search inputs. Efficient DOM updates. Minimal reflows and repaints.</p>
+                            </div>
+                            <div class="glass-card info-card-large">
+                                <h4>📱 Responsive Design</h4>
+                                <p>Mobile-first approach with fluid typography. CSS Grid and Flexbox for layouts. Touch-friendly interaction targets.</p>
+                            </div>
+                            <div class="glass-card info-card-large">
+                                <h4>♿ Accessibility</h4>
+                                <p>Semantic HTML structure. ARIA labels where needed. Keyboard navigation support. Respect for prefers-reduced-motion.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h3>
+                    <span>☁️</span>
+                    <span>Atmosphere</span>
+                </h3>
+                <p>
+                    A modern weather experience exploring liquid glass design. 
+                    Built with passion for beautiful, functional interfaces.
+                </p>
+                <p style="font-size: 0.875rem; color: var(--text-tertiary);">
+                    • Data provided by Open-Meteo API •
+                </p>
+            </div>
+            
+            <div class="footer-links">
+                <h4>Navigation</h4>
+                <ul>
+                    <li><a onclick="showPage('home')">Weather</a></li>
+                    <li><a onclick="showPage('about')">About</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-links">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="https://open-meteo.com/" target="_blank">Open-Meteo</a></li>
+                    <li><a href="https://github.com/ranmikakalhan">GitHub Repository</a></li>
+                    <li><a href="https://www.tiktok.com/@ranmikakalhan17?_r=1&_t=ZS-955slbJoxtJ">Tiktok</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-links">
+                <h4>Connect</h4>
+                <ul>
+                    <li><a href="https://github.com/ranmikakalhan">GitHub</a></li>
+                    <li><a href="https://www.tiktok.com/@ranmikakalhan17?_r=1&_t=ZS-955slbJoxtJ">Tiktok</a></li>
+                    <li><a href="https://www.instagram.com/ranmika17?igsh=MXMwcGJiaXZnN29pMw==">Instagram</a></li>
+                    <li><a href="mailto:ranmikakalhan2011@gmail.com">Email</a></li>
+                    <li><a href="https://ranmikakalhan.github.io/">Portfoilio</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>© 2026 Built by Ranmika Kalhan. All rights reserved.</p>
+            <p>Crafted with precision and care</p>
+        </div>
+    </footer>
+
+ <script>
+        // ==================== STATE MANAGEMENT ====================
+        const state = {
+            theme: localStorage.getItem('theme') || 'light',
+            unit: 'celsius',
+            currentCity: null,
+            weatherData: null,
+            recentSearches: JSON.parse(localStorage.getItem('recentSearches')) || [],
+            searchTimeout: null,
+            currentPage: 'home',
+            mobileMenuOpen: false
+        };
+
+        // Weather Codes
+        const weatherCodes = {
+            0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+            45: 'Fog', 48: 'Depositing rime fog',
+            51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
+            61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+            71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
+            77: 'Snow grains', 80: 'Slight rain showers', 81: 'Moderate rain showers',
+            82: 'Violent rain showers', 85: 'Slight snow showers', 86: 'Heavy snow showers',
+            95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Thunderstorm with heavy hail'
+        };
+
+        // DOM Elements
+        const elements = {
+            themeToggle: document.getElementById('themeToggle'),
+            searchInput: document.getElementById('searchInput'),
+            searchBtn: document.getElementById('searchBtn'),
+            suggestionsDropdown: document.getElementById('suggestionsDropdown'),
+            emptyState: document.getElementById('emptyState'),
+            weatherDashboard: document.getElementById('weatherDashboard'),
+            loading: document.getElementById('loadingOverlay'),
+            toast: document.getElementById('toast'),
+            navbar: document.getElementById('navbar'),
+            homePage: document.getElementById('homePage'),
+            aboutPage: document.getElementById('aboutPage'),
+            navHome: document.getElementById('navHome'),
+            navAbout: document.getElementById('navAbout'),
+            mobileNavOverlay: document.getElementById('mobileNavOverlay'),
+            mobileMenuToggle: document.getElementById('mobileMenuToggle'),
+            mobileNavHome: document.getElementById('mobileNavHome'),
+            mobileNavAbout: document.getElementById('mobileNavAbout')
+        };
+
+        // ==================== PAGE ROUTING ====================
+        // THIS IS THE KEY FUNCTION - It switches between pages
+        function showPage(pageName) {
+            state.currentPage = pageName;
+            
+            // Hide all pages
+            document.querySelectorAll('.page-section').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Show selected page
+            if (pageName === 'home') {
+                elements.homePage.classList.add('active');
+                elements.navHome.classList.add('active');
+                elements.navAbout.classList.remove('active');
+                elements.mobileNavHome.classList.add('active');
+                elements.mobileNavAbout.classList.remove('active');
+            } else if (pageName === 'about') {
+                elements.aboutPage.classList.add('active');
+                elements.navAbout.classList.add('active');
+                elements.navHome.classList.remove('active');
+                elements.mobileNavAbout.classList.add('active');
+                elements.mobileNavHome.classList.remove('active');
+                window.scrollTo(0, 0); // Scroll to top when going to about
+            }
+            
+            // Close mobile menu if open
+            if (state.mobileMenuOpen) {
+                toggleMobileMenu();
+            }
+        }
+
+        // ==================== MOBILE MENU TOGGLE ====================
+        function toggleMobileMenu() {
+            state.mobileMenuOpen = !state.mobileMenuOpen;
+            elements.mobileMenuToggle.classList.toggle('active', state.mobileMenuOpen);
+            elements.mobileNavOverlay.classList.toggle('active', state.mobileMenuOpen);
+            
+            // Prevent body scroll when menu is open
+            document.body.style.overflow = state.mobileMenuOpen ? 'hidden' : '';
+        }
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            // Theme setup
+            document.documentElement.setAttribute('data-theme', state.theme);
+            elements.themeToggle.textContent = state.theme === 'light' ? '🌙' : '☀️';
+
+            // Event Listeners
+            elements.themeToggle.addEventListener('click', toggleTheme);
+            elements.searchInput.addEventListener('input', handleSearchInput);
+            elements.searchInput.addEventListener('focus', () => {
+                if (elements.searchInput.value.length > 0) showSuggestions();
+            });
+            elements.searchInput.addEventListener('blur', () => {
+                setTimeout(() => hideSuggestions(), 200);
+            });
+            elements.searchBtn.addEventListener('click', () => {
+                const city = elements.searchInput.value.trim();
+                if (city) fetchWeather(city);
+            });
+            elements.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const city = elements.searchInput.value.trim();
+                    if (city) fetchWeather(city);
+                }
+            });
+
+            // Unit toggles
+            document.querySelectorAll('.unit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.unit = btn.dataset.unit;
+                    if (state.weatherData) updateWeatherUI();
+                });
+            });
+
+            // Navbar scroll effect
+            window.addEventListener('scroll', () => {
+                elements.navbar.classList.toggle('scrolled', window.scrollY > 50);
+            });
+
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', () => {
+                const hash = window.location.hash;
+                if (hash === '#about') {
+                    showPage('about');
+                } else {
+                    showPage('home');
+                }
+            });
+
+            // Close mobile menu when clicking outside
+            elements.mobileNavOverlay.addEventListener('click', (e) => {
+                if (e.target === elements.mobileNavOverlay) {
+                    toggleMobileMenu();
+                }
+            });
+        }
+
+        // ==================== THEME TOGGLE ====================
+        function toggleTheme() {
+            state.theme = state.theme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', state.theme);
+            elements.themeToggle.textContent = state.theme === 'light' ? '🌙' : '☀️';
+            localStorage.setItem('theme', state.theme);
+        }
+
+        // ==================== SEARCH WITH SUGGESTIONS ====================
+        function handleSearchInput(e) {
+            const query = e.target.value.trim();
+            clearTimeout(state.searchTimeout);
+            
+            if (query.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            state.searchTimeout = setTimeout(() => {
+                fetchCitySuggestions(query);
+            }, 300);
+        }
+
+        async function fetchCitySuggestions(query) {
+            try {
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+                const data = await res.json();
+                displaySuggestions(data.results || [], query);
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+            }
+        }
+
+        function displaySuggestions(cities, query) {
+            let html = '';
+            
+            // Recent searches section
+            if (state.recentSearches.length > 0) {
+                const recentMatches = state.recentSearches.filter(r => 
+                    r.toLowerCase().includes(query.toLowerCase())
+                );
+                
+                if (recentMatches.length > 0) {
+                    html += `<div class="suggestion-category">Recent Searches</div>`;
+                    recentMatches.slice(0, 3).forEach(city => {
+                        html += createSuggestionItem(city, 'Recent', '🕐');
+                    });
+                }
+            }
+
+            // API results
+            if (cities.length > 0) {
+                html += `<div class="suggestion-category">Suggestions</div>`;
+                cities.forEach(city => {
+                    const flag = getFlagEmoji(city.country_code);
+                    const admin = city.admin1 ? `, ${city.admin1}` : '';
+                    html += `
+                        <div class="suggestion-item" data-city="${city.name}" data-lat="${city.latitude}" data-lon="${city.longitude}">
+                            <span class="flag">${flag}</span>
+                            <div class="info">
+                                <div class="name">${highlightMatch(city.name, query)}${admin}</div>
+                                <div class="meta">${city.country || 'Unknown'}</div>
+                            </div>
+                            <span class="country">${city.country_code}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // Popular cities if no results
+            if (cities.length === 0 && query.length < 3) {
+                html += `<div class="suggestion-category">Popular Cities</div>`;
+                const popular = [
+                    { name: 'London', country: 'United Kingdom', code: 'GB', flag: '🇬🇧' },
+                    { name: 'New York', country: 'United States', code: 'US', flag: '🇺🇸' },
+                    { name: 'Tokyo', country: 'Japan', code: 'JP', flag: '🇯🇵' },
+                    { name: 'Paris', country: 'France', code: 'FR', flag: '🇫🇷' },
+                    { name: 'Singapore', country: 'Singapore', code: 'SG', flag: '🇸🇬' }
+                ];
+                
+                popular.forEach(city => {
+                    html += `
+                        <div class="suggestion-item" data-city="${city.name}">
+                            <span class="flag">${city.flag}</span>
+                            <div class="info">
+                                <div class="name">${city.name}</div>
+                                <div class="meta">${city.country}</div>
+                            </div>
+                            <span class="country">${city.code}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            elements.suggestionsDropdown.innerHTML = html;
+            elements.suggestionsDropdown.classList.add('active');
+
+            // Add click handlers
+            elements.suggestionsDropdown.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const city = item.dataset.city;
+                    elements.searchInput.value = city;
+                    hideSuggestions();
+                    fetchWeather(city);
+                });
+            });
+        }
+
+        function createSuggestionItem(city, meta, icon) {
+            return `
+                <div class="suggestion-item" data-city="${city}">
+                    <span class="flag">${icon}</span>
+                    <div class="info">
+                        <div class="name">${city}</div>
+                        <div class="meta">${meta}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function highlightMatch(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span style="color: var(--accent-blue); font-weight: 600;">$1</span>');
+        }
+
+        function getFlagEmoji(countryCode) {
+            const codePoints = countryCode
+                .toUpperCase()
+                .split('')
+                .map(char =>  127397 + char.charCodeAt());
+            return String.fromCodePoint(...codePoints);
+        }
+
+        function hideSuggestions() {
+            elements.suggestionsDropdown.classList.remove('active');
+        }
+
+        // ==================== WEATHER API ====================
+        async function fetchWeather(city) {
+            showLoading(true);
+            
+            try {
+                // Geocoding
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+                const geoData = await geoRes.json();
+
+                if (!geoData.results?.length) {
+                    throw new Error('City not found');
+                }
+
+                const location = geoData.results[0];
+                state.currentCity = location.name;
+                
+                // Add to recent
+                if (!state.recentSearches.includes(location.name)) {
+                    state.recentSearches.unshift(location.name);
+                    if (state.recentSearches.length > 5) state.recentSearches.pop();
+                    localStorage.setItem('recentSearches', JSON.stringify(state.recentSearches));
+                }
+
+                // Weather data
+                const params = new URLSearchParams({
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,visibility,precipitation',
+                    hourly: 'temperature_2m,weather_code',
+                    daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_probability_max',
+                    timezone: 'auto'
+                });
+
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+                state.weatherData = await weatherRes.json();
+                
+                updateWeatherUI();
+                showLoading(false);
+            } catch (error) {
+                showLoading(false);
+                showToast(error.message || 'Failed to fetch weather data');
+            }
+        }
+
+        function updateWeatherUI() {
+            if (!state.weatherData) return;
+
+            const current = state.weatherData.current;
+            const daily = state.weatherData.daily;
+            const hourly = state.weatherData.hourly;
+
+            // Show dashboard
+            elements.emptyState.style.display = 'none';
+            elements.weatherDashboard.classList.add('active');
+
+            // Main info
+            document.getElementById('cityName').textContent = state.currentCity;
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+            document.getElementById('temperature').textContent = convertTemp(current.temperature_2m);
+            document.getElementById('tempUnitDisplay').textContent = state.unit === 'celsius' ? '°C' : '°F';
+            document.getElementById('feelsLike').textContent = convertTemp(current.apparent_temperature);
+            document.getElementById('weatherDesc').textContent = weatherCodes[current.weather_code] || 'Unknown';
+            document.getElementById('mainIcon').textContent = getWeatherIcon(current.weather_code);
+
+            // Details
+            document.getElementById('humidity').textContent = `${current.relative_humidity_2m}%`;
+            document.getElementById('windSpeed').textContent = `${current.wind_speed_10m} km/h`;
+            document.getElementById('pressure').textContent = `${current.pressure_msl} hPa`;
+            document.getElementById('visibility').textContent = `${(current.visibility / 1000).toFixed(1)} km`;
+
+            // Advanced
+            document.getElementById('sunrise').textContent = new Date(daily.sunrise[0]).toLocaleTimeString('en-US', {
+                hour: '2-digit', minute: '2-digit'
+            });
+            document.getElementById('sunset').textContent = new Date(daily.sunset[0]).toLocaleTimeString('en-US', {
+                hour: '2-digit', minute: '2-digit'
+            });
+            document.getElementById('precipitation').textContent = `${current.precipitation || 0}%`;
+            document.getElementById('uvIndex').textContent = daily.uv_index_max[0];
+
+            // Hourly
+            const hourlyContainer = document.getElementById('hourlyForecast');
+            hourlyContainer.innerHTML = '';
+            const currentHour = new Date().getHours();
+
+            for (let i = 0; i < 24; i += 3) {
+                const idx = currentHour + i;
+                if (idx >= hourly.time.length) break;
+
+                const time = new Date(hourly.time[idx]);
+                const div = document.createElement('div');
+                div.className = 'hour-item';
+                div.innerHTML = `
+                    <div class="hour-time">${time.getHours()}:00</div>
+                    <div class="hour-icon">${getWeatherIcon(hourly.weather_code[idx])}</div>
+                    <div class="hour-temp">${convertTemp(hourly.temperature_2m[idx])}°</div>
+                `;
+                hourlyContainer.appendChild(div);
+            }
+
+            // Weekly
+            const weeklyContainer = document.getElementById('weeklyForecast');
+            weeklyContainer.innerHTML = '';
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(daily.time[i]);
+                const dayName = i === 0 ? 'Today' : days[date.getDay()];
+                
+                const div = document.createElement('div');
+                div.className = 'day-item';
+                div.innerHTML = `
+                    <div class="day-name">${dayName}</div>
+                    <div class="day-weather">
+                        <span class="day-icon">${getWeatherIcon(daily.weather_code[i])}</span>
+                        <span class="day-desc">${weatherCodes[daily.weather_code[i]]}</span>
+                    </div>
+                    <div class="day-temps">
+                        <span class="day-high">${convertTemp(daily.temperature_2m_max[i])}°</span>
+                        <span class="day-low">${convertTemp(daily.temperature_2m_min[i])}°</span>
+                    </div>
+                `;
+                weeklyContainer.appendChild(div);
+            }
+        }
+
+        // ==================== HELPERS ====================
+        function getWeatherIcon(code) {
+            const desc = weatherCodes[code]?.toLowerCase() || '';
+            if (desc.includes('clear')) return '☀️';
+            if (desc.includes('cloud')) return '☁️';
+            if (desc.includes('rain') || desc.includes('drizzle')) return '🌧';
+            if (desc.includes('snow')) return '🌨';
+            if (desc.includes('thunder')) return '⛈';
+            if (desc.includes('fog')) return '🌫';
+            return '🌡';
+        }
+
+        function convertTemp(celsius) {
+            return state.unit === 'fahrenheit' ? Math.round((celsius * 9/5) + 32) : Math.round(celsius);
+        }
+
+        function showLoading(show) {
+            elements.loading.classList.toggle('active', show);
+        }
+
+        function showToast(message) {
+            elements.toast.textContent = message;
+            elements.toast.classList.add('active');
+            setTimeout(() => elements.toast.classList.remove('active'), 3000);
+        }
+
+        // ==================== START THE APP ====================
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
