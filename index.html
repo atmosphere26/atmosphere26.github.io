@@ -1560,7 +1560,17 @@
                 font-size: 1rem;
                 padding: 0 0.5rem;
             }
-
+@media (max-width: 640px) {
+    /* ... existing styles ... */
+    
+    #countryName {
+        font-size: 0.9rem !important;
+    }
+    
+    #countryFlag {
+        font-size: 1.25rem !important;
+    }
+}
             /* Ensure weather dashboard doesn't overlap with navbar */
             .weather-dashboard {
                 padding-top: 0.5rem;
@@ -1780,8 +1790,13 @@
                     <div class="glass-card main-weather-card">
                         <div class="weather-glow"></div>
                         <div class="location-info">
-                            <h2 id="cityName">--</h2>
-                            <div class="date-display" id="currentDate">--</div>
+                            <div class="location-info">
+    <h2 id="cityName">--</h2>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span id="countryFlag" style="font-size: 1.5rem;">🏳️</span>
+        <span id="countryName" style="color: var(--text-secondary); font-weight: 500; font-size: 1rem;">--</span>
+    </div>
+    <div class="date-display" id="currentDate">--</div>
                             
                             <div class="temp-display">
                                 <span class="temp-value" id="temperature">--</span>
@@ -2176,16 +2191,18 @@
     <script>
         // ==================== STATE MANAGEMENT ====================
         const state = {
-            theme: localStorage.getItem('theme') || 'light',
-            unit: 'celsius',
-            currentCity: null,
-            weatherData: null,
-            recentSearches: JSON.parse(localStorage.getItem('recentSearches')) || [],
-            searchTimeout: null,
-            currentPage: 'home',
-            mobileMenuOpen: false,
-            userLocation: null
-        };
+    theme: localStorage.getItem('theme') || 'light',
+    unit: 'celsius',
+    currentCity: null,
+    currentCountry: null,
+    currentCountryCode: null,
+    weatherData: null,
+    recentSearches: JSON.parse(localStorage.getItem('recentSearches')) || [],
+    searchTimeout: null,
+    currentPage: 'home',
+    mobileMenuOpen: false,
+    userLocation: null
+};
 
         // Enhanced Weather Codes with descriptions and icons
         const weatherCodes = {
@@ -2344,7 +2361,11 @@
                 const geoData = await geoRes.json();
                 
                 const cityName = geoData.city || geoData.locality || geoData.principalSubdivision || 'Unknown Location';
-                state.currentCity = cityName;
+const countryName = geoData.countryName || 'Unknown';
+const countryCode = geoData.countryCode || '';
+state.currentCity = cityName;
+state.currentCountry = countryName;
+state.currentCountryCode = countryCode;
 
                 // Fetch weather data
                 const params = new URLSearchParams({
@@ -2526,15 +2547,67 @@
             elements.suggestionsDropdown.classList.add('active');
 
             elements.suggestionsDropdown.querySelectorAll('.suggestion-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const city = item.dataset.city;
-                    elements.searchInput.value = city;
-                    hideSuggestions();
-                    fetchWeather(city);
-                });
-            });
+    item.addEventListener('click', () => {
+        const city = item.dataset.city;
+        const lat = item.dataset.lat;
+        const lon = item.dataset.lon;
+        
+        elements.searchInput.value = city;
+        hideSuggestions();
+        
+        // Use coordinates if available, otherwise search by name
+        if (lat && lon) {
+            fetchWeatherByCoords(lat, lon, city);
+        } else {
+            fetchWeather(city);
+        }
+    });
+});
+        }
+async function fetchWeatherByCoords(lat, lon, cityName) {
+    showLoading(true);
+    
+    try {
+        state.currentCity = cityName;
+        
+        // Add to recent searches
+        if (!state.recentSearches.includes(cityName)) {
+            state.recentSearches.unshift(cityName);
+            if (state.recentSearches.length > 5) state.recentSearches.pop();
+            localStorage.setItem('recentSearches', JSON.stringify(state.recentSearches));
         }
 
+        const params = new URLSearchParams({
+            latitude: lat,
+            longitude: lon,
+            current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,precipitation,cloud_cover,dew_point_2m',
+            hourly: 'temperature_2m,weather_code,precipitation_probability',
+            daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_probability_max',
+            timezone: 'auto'
+        });
+
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+        state.weatherData = await weatherRes.json();
+        
+        // Get country info from reverse geocoding or set unknown
+        try {
+            const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+            const geoData = await geoRes.json();
+            state.currentCountry = geoData.countryName || 'Unknown';
+            state.currentCountryCode = geoData.countryCode || '';
+        } catch (e) {
+            state.currentCountry = 'Unknown';
+            state.currentCountryCode = '';
+        }
+        
+        updateLocationStatus(`Showing weather for ${cityName}`, 'success');
+        updateWeatherUI();
+        showLoading(false);
+    } catch (error) {
+        showLoading(false);
+        showToast(error.message || 'Failed to fetch weather data');
+    }
+}
         function createSuggestionItem(city, meta, icon) {
             return `
                 <div class="suggestion-item" data-city="${city}">
@@ -2577,7 +2650,9 @@
                 }
 
                 const location = geoData.results[0];
-                state.currentCity = location.name;
+state.currentCity = location.name;
+state.currentCountry = location.country || 'Unknown';
+state.currentCountryCode = location.country_code || '';
                 
                 if (!state.recentSearches.includes(location.name)) {
                     state.recentSearches.unshift(location.name);
@@ -2623,6 +2698,8 @@
 
             // Main info
             document.getElementById('cityName').textContent = state.currentCity;
+            document.getElementById('countryName').textContent = state.currentCountry || '';
+document.getElementById('countryFlag').textContent = state.currentCountryCode ? getFlagEmoji(state.currentCountryCode) : '🏳️';
             document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
             });
